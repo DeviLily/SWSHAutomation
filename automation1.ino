@@ -32,13 +32,15 @@ const uint8_t month_day[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 uint16_t year;
 uint8_t month, day, is_leap_y;
 
-int8_t mode, refresh;
+int8_t mode, refresh, cur_pos;
 int32_t day_cnt;
 
 void Btn1Pressed();
 void Btn2Pressed();
 void Btn3Pressed();
 void Btn4Pressed();
+
+void DispNDigit(int8_t, int8_t, int32_t);
 
 void MoveCursor(Hat hat);
 void PressA();
@@ -57,7 +59,6 @@ void setup() {
   year = 2020;
   month = 1;
   day = 1;
-  is_leap_y = 1;
 
   btn_stat = 0x00;
   last_btn_stat = 0x00;
@@ -79,8 +80,6 @@ void setup() {
 }
 
 void loop() {
-  // TODO
-  
   int16_t i;
   if (mode == 0) {
     // Disp: InIT
@@ -105,9 +104,118 @@ void loop() {
     delay(L_INTV);
     
     mode = 1;
-  } else if (mode == 1) {
+    refresh = 1;
+  } else if (mode > 0 && mode < 20) {
+    /** mode specification:
+     * 1. Input year
+     * 2. Input month
+     * 3. Input day
+     * 4. Entry of R+3/4/5
+     */
+    if (refresh) {
+      refresh = 0;
+      switch (mode) {
+      case 1:
+        DispNDigit(3, 4, year);
+        break;
+
+      case 2:
+        DispNDigit(3, 2, month);
+        break;
+      
+      case 3:
+        DispNDigit(3, 2, day);
+        break;
+      }
+    }
+    if (btn_stat & 1) {
+      btn_stat &= (~1);
+      switch (mode) {
+      case 1:
+        ++year;
+        refresh = 1;
+        break;
+      
+      case 2:
+        ++month;
+        if (month > 12) month = 1;
+        refresh = 1;
+        break;
+      
+      case 3:
+        ++day;
+        if (day > month_day[month] + (month == 2 ? is_leap_y : 0)) day = 1;
+        refresh = 1;
+        break;
+
+      default:
+        break;
+      }
+    } else if (btn_stat & 2) {
+      btn_stat &= (~2);
+      switch (mode) {
+      case 1:
+        --year;
+        refresh = 1;
+        break;
+      
+      case 2:
+        --month;
+        if (month < 1) month = 12;
+        refresh = 1;
+        break;
+      
+      case 3:
+        --day;
+        if (day < 1) day = month_day[month] + (month == 2 ? is_leap_y : 0);
+        refresh = 1;
+        break;
+
+      default:
+        break;
+      }
+    } else if (btn_stat & 4) {
+      btn_stat &= (~4);
+      switch (mode) {
+      case 2:
+        mode = 1;
+        refresh = 1;
+        break;
+      
+      case 3:
+        day = 1;
+        mode = 2;
+        refresh = 1;
+        break;
+
+      default:  // 1
+        break;
+      }
+    } else if (btn_stat & 8) {
+      btn_stat &= (~8);
+      switch (mode) {
+      case 1:
+        is_leap_y = IsLeapYear();
+        mode = 2;
+        refresh = 1;
+        break;
+
+      case 2:
+        mode = 3;
+        refresh = 1;
+        break;
+      
+      case 3:
+        mode = 4;
+        refresh = 1;
+        break;
+
+      default:
+        break;
+      }
+    }
+  } else if (mode >= 20) {
     // TODO
-    delay(1000 * 30);
   }
 }
 
@@ -224,6 +332,21 @@ void DatePlusN(int32_t days) {
     PressA();
     delay(M_INTV);
   }
+}
+
+void DispNDigit(int8_t end, int8_t n, int32_t num) {
+  if (end > 3) end = 3;
+  if (end < 0) end = 0;
+  if (n > end + 1) n = end + 1;
+  if (n < 0) n = 0;
+  
+  int8_t i;
+  for (i = 0; i < 4; ++i)
+    num_disp[i] = BLANK;
+  for (i = end; n > 0; --i, --n, num /= 10) {
+    num_disp[i] = num % 10;
+  }
+  tm1637.display(num_disp);
 }
 
 void MoveCursor(Hat hat) {
