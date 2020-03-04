@@ -111,6 +111,7 @@ void loop() {
      * 2. Input month
      * 3. Input day
      * 4. Entry of R+3/4/5
+     * 10. R+3/4/5 - Input days
      */
     if (refresh) {
       refresh = 0;
@@ -125,6 +126,18 @@ void loop() {
       
       case 3:
         DispNDigit(3, 2, day);
+        break;
+      
+      case 4:
+        DispNDigit(3, 3, 345);
+        num_disp[0] = 0x0A;
+        tm1637.display(num_disp);
+        break;
+      
+      case 10:
+        DispNDigit(3, 2, day_cnt);
+        num_disp[0] = 0x0A;
+        tm1637.display(num_disp);
         break;
       }
     }
@@ -147,8 +160,14 @@ void loop() {
         if (day > month_day[month] + (month == 2 ? is_leap_y : 0)) day = 1;
         refresh = 1;
         break;
+      
+      case 10:
+        ++day_cnt;
+        if (day_cnt > 5) day_cnt = 3;
+        refresh = 1;
+        break;
 
-      default:
+      default:  // 4
         break;
       }
     } else if (btn_stat & 2) {
@@ -170,6 +189,16 @@ void loop() {
         if (day < 1) day = month_day[month] + (month == 2 ? is_leap_y : 0);
         refresh = 1;
         break;
+      
+      case 4:
+        // TODO
+        break;
+      
+      case 10:
+        --day_cnt;
+        if (day_cnt < 3) day_cnt = 5;
+        refresh = 1;
+        break;
 
       default:
         break;
@@ -187,8 +216,13 @@ void loop() {
         mode = 2;
         refresh = 1;
         break;
+      
+      case 10:
+        mode = 4;
+        refresh = 1;
+        break;
 
-      default:  // 1
+      default:  // 1, 4
         break;
       }
     } else if (btn_stat & 8) {
@@ -209,12 +243,27 @@ void loop() {
         mode = 4;
         refresh = 1;
         break;
+      
+      case 4:
+        day_cnt = 3;
+        mode = 10;
+        refresh = 1;
+        break;
+      
+      case 10:
+        mode = 20;
+        break;
 
       default:
         break;
       }
     }
   } else if (mode >= 20) {
+    /** mode specification:
+     * 20-29: R+3/4/5
+     * 20. 关游戏
+     * 21. 开游戏
+     */
     // TODO
   }
 }
