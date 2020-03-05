@@ -111,8 +111,12 @@ void loop() {
      * 1. Input year
      * 2. Input month
      * 3. Input day
-     * 4. Entry of R+3/4/5
+     * 4. Entry of +3
+     * 5. Entry of R+1,S+3  TODO
+     * 6. Entry of R+3/4/5
+     * 7. Entry of Capture and Levelup  TODO
      * 10. R+3/4/5 - Input days
+     * 11. +3 - Confirm
      */
     if (refresh) {
       refresh = 0;
@@ -121,26 +125,43 @@ void loop() {
         DispNDigit(3, 4, year);
         break;
 
-      case 2:
+      case 2: // M_mm
         DispNDigit(3, 2, month);
+        num_disp[0] = 0x0E;
         break;
       
-      case 3:
+      case 3: // d_dd
         DispNDigit(3, 2, day);
+        num_disp[0] = 0x0d;
         break;
       
-      case 4:
+      case 4: // ___3
+        num_disp[0] = num_disp[1] = num_disp[2] = BLANK;
+        num_disp[3] = 3;
+        break;
+      
+      case 6: // R345
         DispNDigit(3, 3, 345);
         num_disp[0] = 0x0A;
-        tm1637.display(num_disp);
         break;
       
-      case 10:
+      case 10:// R_0d
         DispNDigit(3, 2, day_cnt);
         num_disp[0] = 0x0A;
-        tm1637.display(num_disp);
+        break;
+      
+      case 11:// _y_n
+        num_disp[0] = num_disp[2] = BLANK;
+        num_disp[1] = CHAR_Y;
+        num_disp[3] = CHAR_N;
+        break;
+      
+      default:
+        tm1637.clearDisplay();
         break;
       }
+      tm1637.point(0);
+      tm1637.display(num_disp);
     }
     if (btn_stat & 1) {
       btn_stat &= (~1);
@@ -162,13 +183,25 @@ void loop() {
         refresh = 1;
         break;
       
+      case 4:
+        // TODO to last mode entry;
+        refresh = 1;
+        break;
+      
+      case 5:
+      case 6:
+      case 7:
+        --mode;
+        refresh = 1;
+        break;
+
       case 10:
         ++day_cnt;
         if (day_cnt > 5) day_cnt = 3;
         refresh = 1;
         break;
 
-      default:  // 4
+      default:  // 11
         break;
       }
     } else if (btn_stat & 2) {
@@ -192,16 +225,25 @@ void loop() {
         break;
       
       case 4:
-        // TODO
+      case 5:
+      case 6:
+        ++mode;
+        refresh = 1;
         break;
       
+      case 7:
+        // TODO to first mode entry
+        mode = 4;
+        refresh = 1;
+        break;
+
       case 10:
         --day_cnt;
         if (day_cnt < 3) day_cnt = 5;
         refresh = 1;
         break;
 
-      default:
+      default:  // 11
         break;
       }
     } else if (btn_stat & 4) {
@@ -219,11 +261,16 @@ void loop() {
         break;
       
       case 10:
+        mode = 6;
+        refresh = 1;
+        break;
+      
+      case 11:
         mode = 4;
         refresh = 1;
         break;
 
-      default:  // 1, 4
+      default:  // 1, 4, 5, 6, 7
         break;
       }
     } else if (btn_stat & 8) {
@@ -247,12 +294,23 @@ void loop() {
       
       case 4:
         day_cnt = 3;
+        mode = 11;
+        refresh = 1;
+        break;
+
+      case 6:
+        day_cnt = 3;
         mode = 10;
         refresh = 1;
         break;
       
       case 10:
         mode = 20;
+        refresh = 1;
+        break;
+      
+      case 11:
+        mode = 22;
         refresh = 1;
         break;
 
@@ -280,8 +338,9 @@ void loop() {
       if (mode >= 20 && mode < 30) {
         DispNDigit(3, 3, day_cnt);
         num_disp[0] = 0x0A;
-        tm1637.display(num_disp);
       }
+      tm1637.point(1);
+      tm1637.display(num_disp);
     }
 
     // Switch Controller Operations
@@ -365,7 +424,7 @@ void loop() {
       break;
     
     case 28:
-      mode = 4;
+      mode = 6;
       refresh = 1;
       break;
     }
@@ -374,7 +433,7 @@ void loop() {
     if (btn_stat & 4) {
       btn_stat &= (~4);
       if (mode >= 20 && mode < 30)
-        mode = 4;
+        mode = 6;
       refresh = 1;
     }
     btn_stat &= (~11);
@@ -508,7 +567,6 @@ void DispNDigit(int8_t end, int8_t n, int32_t num) {
   for (i = end; n > 0; --i, --n, num /= 10) {
     num_disp[i] = num % 10;
   }
-  tm1637.display(num_disp);
 }
 
 void MoveCursor(Hat hat) {
