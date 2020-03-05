@@ -3,7 +3,8 @@
 
 #define S_INTV 50
 #define M_INTV 150
-#define L_INTV 950
+#define L_INTV 500
+#define XL_INTV 950
 
 #define BTN1 3
 #define BTN2 2
@@ -252,6 +253,7 @@ void loop() {
       
       case 10:
         mode = 20;
+        refresh = 1;
         break;
 
       default:
@@ -260,11 +262,122 @@ void loop() {
     }
   } else if (mode >= 20) {
     /** mode specification:
-     * 20-29: R+3/4/5
+     * 
+     * 20 - 29: R+3/4/5
      * 20. 关游戏
      * 21. 开游戏
+     * 22. 领瓦特
+     * 23. 开始招募
+     * 24. Game to Date
+     * 25. Date Plus One
+     * 26. Date to Game
+     * 27. 退出招募
+     * 28. 领瓦特（终止）
+     * 
      */
-    // TODO
+    if (refresh) {
+      refresh = 0;
+      if (mode >= 20 && mode < 30) {
+        DispNDigit(3, 3, day_cnt);
+        num_disp[0] = 0x0A;
+        tm1637.display(num_disp);
+      }
+    }
+
+    // Switch Controller Operations
+    switch (mode) {
+    case 20:
+      PressHome();
+      delay(L_INTV);
+      PressX();
+      delay(M_INTV);
+      PressA();
+      delay(2500);  // Shuting down the game
+      break;
+    
+    case 21:
+      PressA();
+      delay(XL_INTV);
+      PressA();
+      delay(1000 * 17); // Game starting
+      PressA();
+      delay(1000 * 10); // Loading
+      break;
+    
+    case 22:
+    case 28:
+      PressA();
+      delay(L_INTV);
+      PressA();
+      delay(L_INTV);
+      PressA();
+      delay(L_INTV);
+      break;
+    
+    case 23:
+      PressA();
+      delay(2500);  // Starting recruit
+      break;
+    
+    case 24:
+      PressHome();
+      delay(L_INTV);
+      GameToDate();
+      break;
+    
+    case 25:
+      DatePlusN(1);
+      break;
+    
+    case 26:
+      DateToGame();
+      PressA();
+      delay(L_INTV);
+      break;
+    
+    case 27:
+      PressB();
+      delay(L_INTV);
+      PressA();
+      delay(4500);  // Stopping recruit
+      break;
+    }
+
+    // Mode Changing
+    switch (mode) {
+
+    // 20 - 26
+    case 20:
+    case 21:
+    case 22:
+    case 23:
+    case 24:
+    case 25:
+    case 26:
+      ++mode;
+      break;
+    
+    case 27:
+      --day_cnt;
+      refresh = 1;
+      if (day_cnt > 0)  mode = 22;
+      else mode = 28;
+      break;
+    
+    case 28:
+      mode = 4;
+      refresh = 1;
+      break;
+    }
+
+    // Press B then stop
+    if (btn_stat & 4) {
+      btn_stat &= (~4);
+      if (mode >= 20 && mode < 30)
+        mode = 4;
+      refresh = 1;
+    }
+    btn_stat &= (~11);
   }
 }
 
@@ -276,7 +389,7 @@ void GameToDate() {
   }
   // Setting
   PressA();
-  delay(L_INTV);
+  delay(XL_INTV);
   // Down to bottom
   for (i = 0; i < 14; ++i) {
     MoveCursor(Hat::BOTTOM);
