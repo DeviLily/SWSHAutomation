@@ -150,12 +150,9 @@ void TM1637::point(boolean PointFlag)
 void TM1637::coding(int8_t DispData[])
 {
   uint8_t PointData;
-  if(_PointFlag == POINT_ON)PointData = 0x80;
-  else PointData = 0; 
   for(uint8_t i = 0;i < 4;i ++)
   {
-    if(DispData[i] == 0x7f)DispData[i] = 0x00;
-    else DispData[i] = TubeTab[DispData[i]] + PointData;
+    DispData[i] = coding(DispData[i]);
   }
 }
 int8_t TM1637::coding(int8_t DispData)

@@ -30,8 +30,8 @@ TM1637 tm1637(CLK, DIO);
 int8_t num_disp[] = {0x00, 0x00, 0x00, 0x00};
 
 const uint8_t month_day[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-uint16_t year;
-uint8_t month, day, is_leap_y;
+uint16_t year, init_year;
+uint8_t month, day, init_month, init_day, is_leap_y;
 
 int8_t mode, refresh, cur_pos;
 int32_t day_cnt;
@@ -47,6 +47,7 @@ void MoveCursor(Hat hat);
 void PressA();
 void PressB();
 void PressX();
+void PressR();
 void PressHome();
 
 void GameToDate();
@@ -112,11 +113,12 @@ void loop() {
      * 2. Input month
      * 3. Input day
      * 4. Entry of +3
-     * 5. Entry of R+1,S+3  TODO
+     * 5. Entry of R+1 S+3
      * 6. Entry of R+3/4/5
      * 7. Entry of Capture and Levelup  TODO
      * 10. R+3/4/5 - Input days
      * 11. +3 - Confirm
+     * 12. R+1 S+3 - Confirm
      */
     if (refresh) {
       refresh = 0;
@@ -125,42 +127,50 @@ void loop() {
         DispNDigit(3, 4, year);
         break;
 
-      case 2: // M_mm
+      case 2: // M_:mm
         DispNDigit(3, 2, month);
         num_disp[0] = 0x0E;
         break;
       
-      case 3: // d_dd
+      case 3: // d_:dd
         DispNDigit(3, 2, day);
         num_disp[0] = 0x0d;
         break;
       
-      case 4: // ___3
-        num_disp[0] = num_disp[1] = num_disp[2] = BLANK;
+      case 4: // 1_:_3
+        num_disp[0] = 1;
+        num_disp[1] = num_disp[2] = BLANK;
         num_disp[3] = 3;
         break;
       
-      case 6: // R345
-        DispNDigit(3, 3, 345);
-        num_disp[0] = 0x0A;
+      case 5: // 2_:1S
+        DispNDigit(3, 2, 15);
+        num_disp[0] = 2;
+        break;
+
+      case 6: // 3_:R3
+        num_disp[0] = num_disp[3] = 3;
+        num_disp[1] = BLANK;
+        num_disp[2] = 0x0A;
         break;
       
-      case 10:// R_0d
+      case 10:// R_:0d
         DispNDigit(3, 2, day_cnt);
         num_disp[0] = 0x0A;
         break;
       
-      case 11:// _y_n
-        num_disp[0] = num_disp[2] = BLANK;
-        num_disp[1] = CHAR_Y;
+      case 11:// _y:n_
+      case 12:
+        num_disp[1] = num_disp[2] = BLANK;
+        num_disp[0] = CHAR_Y;
         num_disp[3] = CHAR_N;
         break;
       
       default:
-        tm1637.clearDisplay();
+        DispNDigit(3, 0, 1);  // Clear Display
         break;
       }
-      tm1637.point(0);
+      tm1637.point(1);
       tm1637.display(num_disp);
     }
     if (btn_stat & 1) {
@@ -201,7 +211,7 @@ void loop() {
         refresh = 1;
         break;
 
-      default:  // 11
+      default:  // 11, 12
         break;
       }
     } else if (btn_stat & 2) {
@@ -243,7 +253,7 @@ void loop() {
         refresh = 1;
         break;
 
-      default:  // 11
+      default:  // 11, 12
         break;
       }
     } else if (btn_stat & 4) {
@@ -269,6 +279,11 @@ void loop() {
         mode = 4;
         refresh = 1;
         break;
+      
+      case 12:
+        mode = 5;
+        refresh = 1;
+        break;
 
       default:  // 1, 4, 5, 6, 7
         break;
@@ -277,17 +292,20 @@ void loop() {
       btn_stat &= (~8);
       switch (mode) {
       case 1:
+        init_year = year;
         is_leap_y = IsLeapYear();
         mode = 2;
         refresh = 1;
         break;
 
       case 2:
+        init_month = month;
         mode = 3;
         refresh = 1;
         break;
       
       case 3:
+        init_day = day;
         mode = 4;
         refresh = 1;
         break;
@@ -295,6 +313,12 @@ void loop() {
       case 4:
         day_cnt = 3;
         mode = 11;
+        refresh = 1;
+        break;
+      
+      case 5:
+        day_cnt = 1;
+        mode = 12;
         refresh = 1;
         break;
 
@@ -311,6 +335,11 @@ void loop() {
       
       case 11:
         mode = 22;
+        refresh = 1;
+        break;
+      
+      case 12:
+        mode = 30;
         refresh = 1;
         break;
 
@@ -332,20 +361,28 @@ void loop() {
      * 27. 退出招募
      * 28. 领瓦特（终止）
      * 
+     * 30 - 49: R+1 S+3
+     * 30-37. Same as 20-27
+     * 38. Game to Date
+     * 39. Back to Now
+     * 40. Date to Game
+     * 41. Save
+     * 
      */
     if (refresh) {
       refresh = 0;
-      if (mode >= 20 && mode < 30) {
-        DispNDigit(3, 3, day_cnt);
-        num_disp[0] = 0x0A;
+      if (mode >= 20 && mode < 50) {
+        DispNDigit(3, 2, day_cnt);
+        num_disp[0] = (mode < 30) ? 0x0A : 5;
       }
-      tm1637.point(1);
+      tm1637.point(0);
       tm1637.display(num_disp);
     }
 
     // Switch Controller Operations
     switch (mode) {
     case 20:
+    case 30:
       PressHome();
       delay(L_INTV);
       PressX();
@@ -355,6 +392,7 @@ void loop() {
       break;
     
     case 21:
+    case 31:
       PressA();
       delay(XL_INTV);
       PressA();
@@ -365,6 +403,7 @@ void loop() {
     
     case 22:
     case 28:
+    case 32:
       PressA();
       delay(L_INTV);
       PressA();
@@ -374,31 +413,58 @@ void loop() {
       break;
     
     case 23:
+    case 33:
       PressA();
       delay(2500);  // Starting recruit
       break;
     
     case 24:
+    case 34:
+    case 38:
       PressHome();
       delay(L_INTV);
       GameToDate();
       break;
     
     case 25:
+    case 35:
       DatePlusN(1);
       break;
     
     case 26:
+    case 36:
+    case 40:
       DateToGame();
       PressA();
       delay(L_INTV);
       break;
     
     case 27:
+    case 37:
       PressB();
       delay(L_INTV);
       PressA();
       delay(4500);  // Stopping recruit
+      break;
+    
+    case 39:  // Reset date
+      year = init_year;
+      month = init_month;
+      day = init_day;
+      is_leap_y = IsLeapYear();
+      MoveCursor(Hat::TOP);
+      MoveCursor(Hat::TOP);
+      PressA();
+      PressA();
+      break;
+    
+    case 41:
+      PressX();
+      delay(L_INTV);
+      PressR();
+      delay(1500);
+      PressA();
+      delay(3000);
       break;
     }
 
@@ -413,6 +479,18 @@ void loop() {
     case 24:
     case 25:
     case 26:
+    // 30 - 40
+    case 30:
+    case 31:
+    case 32:
+    case 33:
+    case 34:
+    case 35:
+    case 36:
+    case 37:
+    case 38:
+    case 39:
+    case 40:
       ++mode;
       break;
     
@@ -427,13 +505,19 @@ void loop() {
       mode = 6;
       refresh = 1;
       break;
+    
+    case 41:
+      day_cnt = 3;
+      refresh = 1;
+      mode = 22;
+      break;
     }
 
     // Press B then stop
     if (btn_stat & 4) {
       btn_stat &= (~4);
-      if (mode >= 20 && mode < 30)
-        mode = 6;
+      if (mode >= 20 && mode < 30) mode = 6;
+      else if (mode >= 30 && mode < 50) mode = 5;
       refresh = 1;
     }
     btn_stat &= (~11);
@@ -594,6 +678,13 @@ void PressX() {
   SwitchControlLibrary().PressButtonX();
   delay(S_INTV);
   SwitchControlLibrary().ReleaseButtonX();
+  delay(S_INTV);
+}
+
+void PressR() {
+  SwitchControlLibrary().PressButtonR();
+  delay(S_INTV);
+  SwitchControlLibrary().ReleaseButtonR();
   delay(S_INTV);
 }
 
