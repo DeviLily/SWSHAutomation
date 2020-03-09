@@ -50,8 +50,6 @@ void PressX();
 void PressR();
 void PressHome();
 
-void GameToDate();
-void DateToGame();
 void DatePlusOne();
 uint8_t IsLeapYear();
 void DatePlusN(int32_t);
@@ -474,27 +472,28 @@ void loop() {
 
     // Switch Controller Operations
     switch (mode) {
-    case 20:
+    case 20:  // Shutdown game
     case 30:
       PressHome();
       delay(L_INTV);
       PressX();
       delay(M_INTV);
       PressA();
-      delay(2500);  // Shuting down the game
+      delay(2500);  // game terminating...
       break;
     
-    case 21:
+    case 21:  // Start game
     case 31:
       PressA();
       delay(XL_INTV);
       PressA();
-      delay(1000 * 17); // Game starting
-      PressA();
-      delay(1000 * 10); // Loading
+      delay(1000 * 18); // game starting...
+      for (i = 0; i < 10; ++i)
+        PressA();
+      delay(1000 * 10); // loading...
       break;
     
-    case 22:
+    case 22:  // Get watt
     case 28:
     case 32:
       PressA();
@@ -508,26 +507,67 @@ void loop() {
     case 23:
     case 33:
       PressA();
-      delay(2500);  // Starting recruit
+      delay(2500);  // recruitment starting...
       break;
     
-    case 24:
+    case 24:  // From game to date setting
     case 34:
     case 38:
       PressHome();
       delay(L_INTV);
-      GameToDate();
+      MoveCursor(Hat::BOTTOM);
+      for (i = 0; i < 4; ++i) {
+        MoveCursor(Hat::RIGHT);
+      }
+      // Setting
+      PressA();
+      delay(XL_INTV);
+      // Down to bottom
+      for (i = 0; i < 14; ++i) {
+        MoveCursor(Hat::BOTTOM);
+      }
+      // Console
+      PressA();
+      delay(M_INTV);
+      for (i = 0; i < 4; ++i) {
+        MoveCursor(Hat::BOTTOM);
+      }
+      // DateAndTime
+      PressA();
+      delay(M_INTV);
       break;
     
-    case 25:
+    case 25:  // the first day
     case 35:
-      DatePlusN(1);
+      MoveCursor(Hat::BOTTOM);
+      MoveCursor(Hat::BOTTOM);
+      // Year
+      PressA();
+      delay(M_INTV);
+      // Month
+      MoveCursor(Hat::RIGHT);
+      // Day
+      MoveCursor(Hat::RIGHT);
+      DatePlusOne();
+      // OK
+      for (i = 0; i < 3; ++i) {
+        MoveCursor(Hat::RIGHT);
+      }
+      PressA();
+      delay(M_INTV);
       break;
     
-    case 26:
+    case 26:  // Back to game from date setting
     case 36:
     case 40:
-      DateToGame();
+      // Console -> Setting -> Main Page
+      for (i = 0; i < 3; ++i) {
+        PressB();
+        delay(M_INTV);
+      }
+      MoveCursor(Hat::TOP);
+      MoveCursor(Hat::LEFT);
+      MoveCursor(Hat::LEFT);
       PressA();
       delay(L_INTV);
       break;
@@ -537,7 +577,7 @@ void loop() {
       PressB();
       delay(L_INTV);
       PressA();
-      delay(4500);  // Stopping recruit
+      delay(4500);  // recruitment stopping...
       break;
     
     case 39:  // Reset date
@@ -545,13 +585,11 @@ void loop() {
       month = init_month;
       day = init_day;
       is_leap_y = IsLeapYear();
-      MoveCursor(Hat::TOP);
-      MoveCursor(Hat::TOP);
       PressA();
       PressA();
       break;
     
-    case 41:
+    case 41:  // Save
       PressX();
       delay(L_INTV);
       PressR();
@@ -622,46 +660,6 @@ void loop() {
   }
 }
 
-void GameToDate() {
-  int8_t i;
-  MoveCursor(Hat::BOTTOM);
-  for (i = 0; i < 4; ++i) {
-    MoveCursor(Hat::RIGHT);
-  }
-  // Setting
-  PressA();
-  delay(XL_INTV);
-  // Down to bottom
-  for (i = 0; i < 14; ++i) {
-    MoveCursor(Hat::BOTTOM);
-  }
-  // Console
-  PressA();
-  delay(M_INTV);
-  for (i = 0; i < 4; ++i) {
-    MoveCursor(Hat::BOTTOM);
-  }
-  // DateAndTime
-  PressA();
-  delay(M_INTV);
-  for (i = 0; i < 2; ++i) {
-    MoveCursor(Hat::BOTTOM);
-  }
-}
-
-void DateToGame() {
-  int8_t i;
-  // Console -> Setting -> Main Page
-  for (i = 0; i < 3; ++i) {
-    PressB();
-    delay(M_INTV);
-  }
-  MoveCursor(Hat::TOP);
-  for (i = 0; i < 2; ++i) {
-    MoveCursor(Hat::LEFT);
-  }
-}
-
 void DatePlusOne() {
   // Up for 1 day
   MoveCursor(Hat::TOP);
@@ -701,25 +699,6 @@ uint8_t IsLeapYear() {
 void DatePlusN(int32_t days) {
   int8_t i;
   
-  if (days > 0) {
-    --days;
-    
-    // Year
-    PressA();
-    delay(M_INTV);
-    // Day
-    for (i = 0; i < 2; ++i) {
-      MoveCursor(Hat::RIGHT);
-    }
-    DatePlusOne();
-    // OK
-    for (i = 0; i < 3; ++i) {
-      MoveCursor(Hat::RIGHT);
-    }
-    // Confirm Date
-    PressA();
-    delay(M_INTV);
-  }
   while (days > 0) {
     --days;
     
