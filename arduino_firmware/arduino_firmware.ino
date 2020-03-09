@@ -1,8 +1,8 @@
 #include <SwitchControlLibrary.h>
 #include "TM1637.h"
 
-#define S_INTV 50
-#define M_INTV 150
+#define S_INTV 40
+#define M_INTV 160
 #define L_INTV 500
 #define XL_INTV 950
 
@@ -52,7 +52,6 @@ void PressHome();
 
 void DatePlusOne();
 uint8_t IsLeapYear();
-void DatePlusN(int32_t);
 
 void setup() {
   // Default Date
@@ -243,6 +242,7 @@ void loop() {
       case 15:
         ++num_disp[cur_pos];
         if (num_disp[cur_pos] > 9) num_disp[cur_pos] = 0;
+        if (!(num_disp[0] | num_disp[1] | num_disp[2] | num_disp[3])) num_disp[3] = 1;
         break;
       
       default:  // 11, 12, 13
@@ -372,13 +372,13 @@ void loop() {
         break;
       
       case 8:
-        DispNDigit(3, 4, 0);
+        DispNDigit(3, 4, 1);
         cur_pos = 0;
         mode = 14;
         break;
       
       case 9:
-        DispNDigit(3, 4, 0);
+        DispNDigit(3, 4, 1);
         cur_pos = 0;
         mode = 15;
         break;
@@ -446,12 +446,13 @@ void loop() {
      * 52. Date Plus One
      * 53. Date to Game
      * 
-     * 60 - 69: +N without watt     // TODO
+     * 60 - 69: +N without watt
      * 60. Game to Date
      * 61. Date Plus One
      * 62. Date Plus N
-     * 63. Date to Game
-     * 64. Save
+     * 63. Back to Now
+     * 64. Date to Game
+     * 65. Save
      * 
      * 70 - 79: Capture and Levelup // TODO
      * 70. 捕捉，返回游戏界面
@@ -465,6 +466,8 @@ void loop() {
       if (mode >= 20 && mode < 50) {
         DispNDigit(3, 2, day_cnt);
         num_disp[0] = (mode < 30) ? 0x0A : 5;
+      } else if (mode >= 50 && mode < 70) {
+        DispNDigit(3, 4, day_cnt);
       }
       tm1637.point(0);
       tm1637.display(num_disp);
@@ -513,6 +516,7 @@ void loop() {
     case 24:  // From game to date setting
     case 34:
     case 38:
+    case 60:
       PressHome();
       delay(L_INTV);
       MoveCursor(Hat::BOTTOM);
@@ -539,6 +543,7 @@ void loop() {
     
     case 25:  // the first day
     case 35:
+    case 61:
       MoveCursor(Hat::BOTTOM);
       MoveCursor(Hat::BOTTOM);
       // Year
@@ -560,6 +565,7 @@ void loop() {
     case 26:  // Back to game from date setting
     case 36:
     case 40:
+    case 64:
       // Console -> Setting -> Main Page
       for (i = 0; i < 3; ++i) {
         PressB();
@@ -580,6 +586,9 @@ void loop() {
       delay(4500);  // recruitment stopping...
       break;
     
+    case 63:
+      MoveCursor(Hat::TOP);
+      MoveCursor(Hat::TOP);
     case 39:  // Reset date
       year = init_year;
       month = init_month;
@@ -590,6 +599,7 @@ void loop() {
       break;
     
     case 41:  // Save
+    case 65:
       PressX();
       delay(L_INTV);
       PressR();
@@ -597,6 +607,23 @@ void loop() {
       PressA();
       delay(3000);
       break;
+    
+    case 62:  // Plus one day (not 1st day)
+      PressA();
+      delay(80);
+      // to day
+      for (i = 0; i < 3; ++i) {
+        MoveCursor(Hat::LEFT);
+      }
+      DatePlusOne();
+      // OK
+      for (i = 0; i < 3; ++i) {
+        MoveCursor(Hat::RIGHT);
+      }
+      PressA();
+      delay(80);
+      break;
+
     }
 
     // Mode Changing
@@ -622,6 +649,9 @@ void loop() {
     case 38:
     case 39:
     case 40:
+    // 60, 63
+    case 60:
+    case 63:
       ++mode;
       break;
     
@@ -643,6 +673,29 @@ void loop() {
       mode = 22;
       break;
     
+    case 61:
+    case 62:
+      --day_cnt;
+      if (day_cnt % 200 == 0)
+        mode = 63;
+      else
+        mode = 62;
+      refresh = 1;
+      break;
+    
+    case 64:
+      if (day_cnt > 0)
+        ++mode;
+      else {
+        mode = 9;
+        refresh = 1;
+      }
+      break;
+
+    case 65:
+      mode = 60;
+      break;
+
     default:
       mode = 6;
       refresh = 1;
@@ -654,6 +707,7 @@ void loop() {
       btn_stat &= (~4);
       if (mode >= 20 && mode < 30) mode = 6;
       else if (mode >= 30 && mode < 50) mode = 5;
+      else if (mode >= 60 && mode < 70) mode = 9;
       refresh = 1;
     }
     btn_stat &= (~11);
@@ -694,26 +748,6 @@ void DatePlusOne() {
 uint8_t IsLeapYear() {
   if ((year % 400 == 0) || ((year % 4 == 0) && (year % 100 != 0)))  return 1;
   else  return 0;
-}
-
-void DatePlusN(int32_t days) {
-  int8_t i;
-  
-  while (days > 0) {
-    --days;
-    
-    PressA();
-    delay(M_INTV);
-    for (i = 0; i < 3; ++i) {
-      MoveCursor(Hat::LEFT);
-    }
-    DatePlusOne();
-    for (i = 0; i < 3; ++i) {
-      MoveCursor(Hat::RIGHT);
-    }
-    PressA();
-    delay(M_INTV);
-  }
 }
 
 void DispNDigit(int8_t end, int8_t n, int32_t num) {
