@@ -440,11 +440,12 @@ void loop() {
      * 40. Date to Game
      * 41. Save
      * 
-     * 50 - 59: +N with watt        // TODO
-     * 50. 领瓦特，并返回
-     * 51. Game to Date
+     * 50 - 59: +N with watt
+     * 50. 领瓦特
+     * 51. 返回，Game to Date
      * 52. Date Plus One
-     * 53. Date to Game
+     * 53. Back to Now
+     * 54. Date to Game
      * 
      * 60 - 69: +N without watt
      * 60. Game to Date
@@ -499,6 +500,7 @@ void loop() {
     case 22:  // Get watt
     case 28:
     case 32:
+    case 50:
       PressA();
       delay(L_INTV);
       PressA();
@@ -513,6 +515,9 @@ void loop() {
       delay(2500);  // recruitment starting...
       break;
     
+    case 51:
+      PressB();
+      delay(XL_INTV);
     case 24:  // From game to date setting
     case 34:
     case 38:
@@ -543,6 +548,7 @@ void loop() {
     
     case 25:  // the first day
     case 35:
+    case 52:
     case 61:
       MoveCursor(Hat::BOTTOM);
       MoveCursor(Hat::BOTTOM);
@@ -565,6 +571,7 @@ void loop() {
     case 26:  // Back to game from date setting
     case 36:
     case 40:
+    case 54:
     case 64:
       // Console -> Setting -> Main Page
       for (i = 0; i < 3; ++i) {
@@ -586,6 +593,7 @@ void loop() {
       delay(4500);  // recruitment stopping...
       break;
     
+    case 53:
     case 63:
       MoveCursor(Hat::TOP);
       MoveCursor(Hat::TOP);
@@ -649,6 +657,10 @@ void loop() {
     case 38:
     case 39:
     case 40:
+    // 50 - 52
+    case 50:
+    case 51:
+    case 53:
     // 60, 63
     case 60:
     case 63:
@@ -671,6 +683,18 @@ void loop() {
       day_cnt = 3;
       refresh = 1;
       mode = 22;
+      break;
+    
+    case 52:
+      --day_cnt;
+      if (day_cnt > 0) mode = 54;
+      else mode = 53;
+      break;
+
+    case 54:
+      if (day_cnt > 0) mode = 50;
+      else mode = 8;
+      refresh = 1;
       break;
     
     case 61:
@@ -707,6 +731,7 @@ void loop() {
       btn_stat &= (~4);
       if (mode >= 20 && mode < 30) mode = 6;
       else if (mode >= 30 && mode < 50) mode = 5;
+      else if (mode >= 50 && mode < 60) mode = 8;
       else if (mode >= 60 && mode < 70) mode = 9;
       refresh = 1;
     }
@@ -801,7 +826,7 @@ void PressR() {
 
 void PressHome() {
   SwitchControlLibrary().PressButtonHome();
-  delay(S_INTV);
+  delay(S_INTV + 10);
   SwitchControlLibrary().ReleaseButtonHome();
   delay(S_INTV);
 }
