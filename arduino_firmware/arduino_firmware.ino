@@ -1,26 +1,26 @@
 #include <SwitchControlLibrary.h>
 #include "TM1637.h"
 
-#define S_INTV 40
-#define M_INTV 160
-#define L_INTV 500
-#define XL_INTV 950
+const int16_t S_INTV = 42;
+const int16_t M_INTV = 160;
+const int16_t L_INTV = 520;
+const int16_t XL_INTV = 950;
 
 #define BTN1 3
 #define BTN2 2
 #define BTN3 0
 #define BTN4 1
-#define DEBOUNCE_DELAY 20
+const int8_t DEBOUNCE_DELAY = 20;
 
 #define CLK A2
 #define DIO A3
 
-#define CHAR_I 0x10
-#define CHAR_L 0x11
-#define CHAR_N 0x12
-#define CHAR_T 0x13
-#define CHAR_Y 0x14
-#define BLANK 0x7f
+const int8_t CHAR_I = 0x10;
+const int8_t CHAR_L = 0x11;
+const int8_t CHAR_N = 0x12;
+const int8_t CHAR_T = 0x13;
+const int8_t CHAR_Y = 0x14;
+const int8_t BLANK = 0x7f;
 
 volatile uint8_t btn_stat;
 volatile uint8_t last_btn_stat;
@@ -573,14 +573,8 @@ void loop() {
     case 40:
     case 54:
     case 64:
-      // Console -> Setting -> Main Page
-      for (i = 0; i < 3; ++i) {
-        PressB();
-        delay(M_INTV);
-      }
-      MoveCursor(Hat::TOP);
-      MoveCursor(Hat::LEFT);
-      MoveCursor(Hat::LEFT);
+      PressHome();
+      delay(L_INTV);
       PressA();
       delay(L_INTV);
       break;
@@ -826,7 +820,7 @@ void PressR() {
 
 void PressHome() {
   SwitchControlLibrary().PressButtonHome();
-  delay(S_INTV + 10);
+  delay(50);
   SwitchControlLibrary().ReleaseButtonHome();
   delay(S_INTV);
 }
